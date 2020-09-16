@@ -132,7 +132,7 @@ class Forecast(ABC):
 
         p50_data = ps_data[i_p50]
         p50_series = pd.Series(data=p50_data, index=self.index)
-        p50_series.plot(color="b", ls="-", label=f"{label_prefix}median")
+        p50_series.plot(color="black", ls="-", label=f"{label_prefix}median")
 
         if show_mean:
             mean_data = np.mean(self._sorted_samples, axis=0)
