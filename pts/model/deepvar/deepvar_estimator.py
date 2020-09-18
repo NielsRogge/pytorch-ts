@@ -141,6 +141,7 @@ class DeepVAREstimator(PTSEstimator):
                     }
                 )
 
+        remove_field_names = []
         if not self.use_feat_dynamic_real:
             remove_field_names.append(FieldName.FEAT_DYNAMIC_REAL)
         if not self.use_feat_dynamic_cat:
