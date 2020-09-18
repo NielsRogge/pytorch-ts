@@ -196,7 +196,7 @@ class DeepVAREstimator(PTSEstimator):
                         [FieldName.FEAT_DYNAMIC_REAL]
                         if self.use_feat_dynamic_real
                         else []
-                    ),
+                    )
                     + (
                         [FieldName.FEAT_DYNAMIC_CAT]
                         if self.use_feat_dynamic_cat
