@@ -44,6 +44,9 @@ class TransformerTempFlowEstimator(PTSEstimator):
         num_decoder_layers: int = 3,
         num_parallel_samples: int = 100,
         dropout_rate: float = 0.1,
+        use_feat_dynamic_real: bool = False,
+        use_feat_static_real: bool = False,
+        use_feat_static_cat: bool = False,
         cardinality: List[int] = [1],
         embedding_dimension: int = 5,
         flow_type="RealNVP",
@@ -79,8 +82,14 @@ class TransformerTempFlowEstimator(PTSEstimator):
 
         self.num_parallel_samples = num_parallel_samples
         self.dropout_rate = dropout_rate
-        self.cardinality = cardinality
-        self.embedding_dimension = embedding_dimension
+        self.use_feat_dynamic_real = use_feat_dynamic_real
+        self.use_feat_static_real = use_feat_static_real
+        self.use_feat_static_cat = use_feat_static_cat
+        self.cardinality = cardinality if cardinality and use_feat_static_cat else [1]
+        self.embedding_dimension = (
+            embedding_dimension
+            if embedding_dimension is not None
+            else [min(50, (cat + 1) // 2) for cat in self.cardinality]
 
         self.flow_type = flow_type
         self.n_blocks = n_blocks
@@ -106,8 +115,25 @@ class TransformerTempFlowEstimator(PTSEstimator):
         self.scaling = scaling
 
     def create_transformation(self) -> Transformation:
+        remove_field_names = [FieldName.FEAT_DYNAMIC_CAT]
+        if not self.use_feat_dynamic_real:
+            remove_field_names.append(FieldName.FEAT_DYNAMIC_REAL)
+        if not self.use_feat_static_real:
+            remove_field_names.append(FieldName.FEAT_STATIC_REAL)
+        
         return Chain(
-            [
+            [RemoveFields(field_names=remove_field_names)]
+            + (
+                [SetField(output_field=FieldName.FEAT_STATIC_CAT, value=[0])]
+                if not self.use_feat_static_cat
+                else []
+            )
+            + (
+                [SetField(output_field=FieldName.FEAT_STATIC_REAL, value=[0.0])]
+                if not self.use_feat_static_real
+                else []
+            )
+            + [
                 AsNumpyArray(field=FieldName.TARGET, expected_ndim=2,),
                 # maps the target to (1, T)
                 # if the target data is uni dimensional
@@ -125,7 +151,12 @@ class TransformerTempFlowEstimator(PTSEstimator):
                 ),
                 VstackFeatures(
                     output_field=FieldName.FEAT_TIME,
-                    input_fields=[FieldName.FEAT_TIME],
+                    input_fields=[FieldName.FEAT_TIME]
+                    + (
+                        [FieldName.FEAT_DYNAMIC_REAL]
+                        if self.use_feat_dynamic_real
+                        else []
+                    ),
                 ),
                 SetFieldIfNotPresent(field=FieldName.FEAT_STATIC_CAT, value=[0]),
                 TargetDimIndicator(
