@@ -158,7 +158,6 @@ class TransformerTempFlowEstimator(PTSEstimator):
                         else []
                     ),
                 ),
-                SetFieldIfNotPresent(field=FieldName.FEAT_STATIC_CAT, value=[0]),
                 TargetDimIndicator(
                     field_name="target_dimension_indicator",
                     target_field=FieldName.TARGET,
